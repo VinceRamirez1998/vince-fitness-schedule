@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitness Tracker – Uric Acid & Creatinine Goals</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --accent-dark: #16a34a;
+      --ring: #334155;
+    }
+    * { box-sizing: border-box }
+    body{
+      margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);
+      display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px;
+    }
+    .tracker{
+      width:100%;max-width:420px;background:var(--card);padding:20px;border-radius:16px;
+      box-shadow:0 0 12px rgba(0,0,0,.3);
+    }
+    h1{ text-align:center;font-size:1.3rem;margin:0 0 10px }
+    p.goal{ text-align:center;color:var(--muted);font-size:.9rem;margin:0 0 16px }
+
+    /* Tabs */
+    .tabs{ display:flex; gap:8px; margin:0 0 14px }
+    .tabbtn{
+      flex:1; padding:10px; border:1px solid var(--ring); border-radius:10px; background:#0f172a;
+      color:var(--text); font-weight:700; cursor:pointer;
+    }
+    .tabbtn.active{ background:var(--accent); color:#052e16; border-color:var(--accent) }
+    .tabpane{ display:none }
+    .tabpane.active{ display:block }
+
+    /* ===== STATS BAR (Monthly) ===== */
+    .stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 14px }
+    .stat-card{ background:#0f172a; border:1px solid var(--ring); border-radius:12px; padding:10px 12px }
+    .stat-label{ color:var(--muted); font-size:.8rem; margin:0 0 4px }
+    .stat-value{ font-size:1.4rem; font-weight:800; letter-spacing:.3px }
+    .stat-sublabel{ color:var(--muted); font-size:.75rem; margin-top:2px }
+
+    label{
+      display:flex; align-items:center; gap:8px; font-size:1rem; margin-bottom:10px; cursor:pointer;
+    }
+    input[type="checkbox"]{ width:20px; height:20px; accent-color:var(--accent); cursor:pointer }
+    input[type="date"], textarea{
+      width:100%; padding:10px; border-radius:8px; border:1px solid var(--ring);
+      background:#0f172a; color:var(--text); font-size:1rem; margin-bottom:15px;
+    }
+    textarea{ resize:vertical }
+    button.action{
+      width:100%; padding:10px; font-size:1rem; border:none; border-radius:8px; background:var(--accent);
+      color:#fff; font-weight:700; cursor:pointer; transition:.2s; margin-top:8px;
+    }
+    button.action:hover{ background:var(--accent-dark) }
+
+    .calendar{ margin-top:22px; text-align:center }
+    .calendar-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px }
+    .calendar-header button{
+      width:40px; height:40px; background:#0f172a; border:1px solid var(--ring); color:var(--text);
+      font-size:1.2rem; border-radius:8px; cursor:pointer;
+    }
+    .calendar-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px }
+    .calendar-day{
+      aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; border-radius:8px;
+      border:1px solid var(--ring); background:#0f172a; cursor:pointer; transition:.2s;
+    }
+    .calendar-day:hover{ border-color:var(--accent) }
+    .done{ background:rgba(34,197,94,.3); border-color:#22c55e; color:#bbf7d0 }
+    .today{ outline:2px solid #22c55e }
+    .weekday{ font-size:.8rem; color:var(--muted) }
+
+    /* Yearly table */
+    .year-table{
+      width:100%; border-collapse:collapse; background:#0f172a; border:1px solid var(--ring);
+      border-radius:12px; overflow:hidden; margin-top:6px;
+    }
+    .year-table th, .year-table td{
+      padding:10px; border-bottom:1px solid var(--ring); text-align:left; font-size:.95rem;
+    }
+    .year-table th{ color:var(--muted); font-weight:600 }
+    .year-table tr:last-child td{ border-bottom:none }
+    .year-summary{
+      margin-top:12px; color:var(--muted); font-size:.9rem; text-align:center;
+    }
+
+    @media (max-width:480px){
+      .tracker{ padding:15px }
+      h1{ font-size:1.1rem }
+    }
+  </style>
+</head>
+<body>
+  <div class="tracker">
+    <h1>Fitness Tracker</h1>
+    <p class="goal">Goal: Pababain ang uric acid (9.1) at creatinine (1.56) to normal</p>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tabbtn active" data-tab="monthly">Monthly</button>
+      <button class="tabbtn" data-tab="yearly">Yearly Stats</button>
+    </div>
+
+    <!-- ===== MONTHLY TAB ===== -->
+    <section class="tabpane active" id="monthly">
+      <!-- STATS (TOP) -->
+      <div class="stats" id="statsTop">
+        <div class="stat-card">
+          <div class="stat-label">Days Tracked</div>
+          <div class="stat-value" id="statDaysTracked">0</div>
+          <div class="stat-sublabel" id="statMonthName">This Month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Liters</div>
+          <div class="stat-value" id="statLiters">0L</div>
+          <div class="stat-sublabel">8L per ✓ day</div>
+        </div>
+      </div>
+
+      <input type="date" id="date" />
+
+      <label><input type="checkbox" id="done" /> Mark as Done</label>
+      <label><input type="checkbox" id="run" /> I Run (35 mins)</label>
+      <label><input type="checkbox" id="water" /> 8 Liters of Water</label>
+      <label><input type="checkbox" id="food" /> Eat Healthy Food</label>
+
+      <textarea id="notes" placeholder="Notes or results (e.g. No meat today, feeling good)"></textarea>
+
+      <button class="action" id="save">Save Progress</button>
+
+      <div class="calendar">
+        <div class="calendar-header">
+          <button id="prev">◀</button>
+          <div id="monthYear"></div>
+          <button id="next">▶</button>
+        </div>
+        <div class="calendar-grid" id="weekdays"></div>
+        <div class="calendar-grid" id="days"></div>
+      </div>
+    </section>
+
+    <!-- ===== YEARLY TAB ===== -->
+    <section class="tabpane" id="yearly">
+      <div class="stat-card" style="margin-bottom:10px">
+        <div class="stat-label">Overview</div>
+        <div class="stat-sublabel">Totals per year</div>
+      </div>
+      <table class="year-table" id="yearTable">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Days Tracked</th>
+            <th>Total Liters</th>
+          </tr>
+        </thead>
+        <tbody id="yearTableBody">
+          <!-- Filled by JS -->
+        </tbody>
+      </table>
+      <div class="year-summary" id="yearSummary">No data yet.</div>
+    </section>
+  </div>
+
+  <script>
+    // ====== ELEMENTS (Monthly) ======
+    const dateInput = document.getElementById('date');
+    const run = document.getElementById('run');
+    const water = document.getElementById('water');
+    const food = document.getElementById('food');
+    const done = document.getElementById('done');
+    const notes = document.getElementById('notes');
+    const save = document.getElementById('save');
+
+    const daysContainer = document.getElementById('days');
+    const monthYear = document.getElementById('monthYear');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+
+    // Stats (Monthly)
+    const statDaysTracked = document.getElementById('statDaysTracked');
+    const statLiters = document.getElementById('statLiters');
+    const statMonthName = document.getElementById('statMonthName');
+
+    // Tabs
+    const tabButtons = document.querySelectorAll('.tabbtn');
+    const tabPanes = document.querySelectorAll('.tabpane');
+
+    // Yearly elements
+    const yearTableBody = document.getElementById('yearTableBody');
+    const yearSummary = document.getElementById('yearSummary');
+
+    // ====== STATE ======
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+
+    const dataKey = 'fitnessDataV2';
+    let data = JSON.parse(localStorage.getItem(dataKey) || '{}'); // { YYYY-MM-DD: {...} }
+
+    const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    // ====== TABS ======
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabPanes.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+
+        if (btn.dataset.tab === 'yearly') {
+          renderYearlyStats();
+        }
+      });
+    });
+
+    // ====== MONTHLY VIEW ======
+    function renderWeekdays() {
+      const container = document.getElementById('weekdays');
+      container.innerHTML = '';
+      weekdays.forEach(day => {
+        const div = document.createElement('div');
+        div.classList.add('weekday');
+        div.textContent = day;
+        container.appendChild(div);
+      });
+    }
+
+    function monthLabel(y, m){
+      return `${new Date(y, m).toLocaleString('default', { month: 'long' })} ${y}`;
+    }
+
+    function renderCalendar(year, month) {
+      daysContainer.innerHTML = '';
+      const label = monthLabel(year, month);
+      monthYear.textContent = label;
+      statMonthName.textContent = label;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDay; i++) {
+        const blank = document.createElement('div');
+        daysContainer.appendChild(blank);
+      }
+
+      for (let d = 1; d <= lastDate; d++) {
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const div = document.createElement('div');
+        div.classList.add('calendar-day');
+        div.textContent = d;
+
+        if (data[dateKey]?.done) div.classList.add('done');
+
+        const today = new Date();
+        if (today.getFullYear() === year && today.getMonth() === month && today.getDate() === d) {
+          div.classList.add('today');
+        }
+
+        div.addEventListener('click', () => {
+          dateInput.value = dateKey;
+          loadDay(dateKey);
+        });
+
+        daysContainer.appendChild(div);
+      }
+
+      refreshMonthlyStats(year, month);
+    }
+
+    function loadDay(key) {
+      const record = data[key] || {};
+      run.checked = record.run || false;
+      water.checked = record.water || false;
+      food.checked = record.food || false;
+      done.checked = record.done || false;
+      notes.value = record.notes || '';
+    }
+
+    function saveDay() {
+      const key = dateInput.value || new Date().toISOString().split('T')[0];
+      data[key] = {
+        run: run.checked,
+        water: water.checked,
+        food: food.checked,
+        done: done.checked,
+        notes: notes.value.trim(),
+      };
+      localStorage.setItem(dataKey, JSON.stringify(data));
+      renderCalendar(currentYear, currentMonth); // refreshes calendar + monthly stats
+      // if Yearly tab is open, refresh it too
+      if (document.getElementById('yearly').classList.contains('active')) {
+        renderYearlyStats();
+      }
+    }
+
+    // When "Mark as Done" is checked, auto-check other habits
+    done.addEventListener('change', () => {
+      if (done.checked) {
+        run.checked = true;
+        water.checked = true;
+        food.checked = true;
+      }
+    });
+
+    prevBtn.addEventListener('click', () => {
+      currentMonth--;
+      if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+      renderCalendar(currentYear, currentMonth);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      currentMonth++;
+      if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+      renderCalendar(currentYear, currentMonth);
+    });
+
+    save.addEventListener('click', saveDay);
+
+    // ====== Monthly stats ======
+    function refreshMonthlyStats(year, month){
+      const lastDate = new Date(year, month + 1, 0).getDate();
+      let daysTracked = 0;
+      let liters = 0;
+
+      for(let d=1; d<=lastDate; d++){
+        const key = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const r = data[key];
+        if(!r) continue;
+
+        const any = r.run || r.water || r.food || r.done || (r.notes && r.notes.trim() !== '');
+        if(any) daysTracked++;
+
+        if(r.water) liters += 8; // 8L for water-checked day
+      }
+      statDaysTracked.textContent = daysTracked;
+      statLiters.textContent = `${liters}L`;
+    }
+
+    // ====== Yearly stats ======
+    function renderYearlyStats(){
+      // Aggregate across ALL dates in storage
+      const years = {}; // year -> { daysTracked, liters }
+      Object.keys(data).forEach(k => {
+        const r = data[k];
+        const y = k.slice(0,4);
+        if(!years[y]) years[y] = { daysTracked:0, liters:0 };
+
+        const any = r.run || r.water || r.food || r.done || (r.notes && r.notes.trim() !== '');
+        if(any) years[y].daysTracked += 1;
+        if(r.water) years[y].liters += 8; // fixed 8L rule
+      });
+
+      // Render table
+      const rows = Object.keys(years).sort().map(y => {
+        const {daysTracked, liters} = years[y];
+        return `<tr><td>${y}</td><td>${daysTracked}</td><td>${liters}L</td></tr>`;
+      }).join('');
+
+      yearTableBody.innerHTML = rows || `<tr><td colspan="3" style="text-align:center;color:var(--muted)">No data yet.</td></tr>`;
+
+      // Summary line
+      const totals = Object.values(years).reduce((acc, v) => {
+        acc.days += v.daysTracked; acc.liters += v.liters; return acc;
+      }, {days:0, liters:0});
+      yearSummary.textContent = rows
+        ? `All-time: ${totals.days} days tracked • ${totals.liters}L total`
+        : 'No data yet.';
+    }
+
+    // ====== Boot ======
+    dateInput.value = new Date().toISOString().split('T')[0];
+    renderWeekdays();
+    renderCalendar(currentYear, currentMonth);
+    loadDay(dateInput.value);
+  </script>
+</body>
+</html>
